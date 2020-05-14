@@ -1,0 +1,117 @@
+char* letters[] = {
+".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..",
+".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", 
+"...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."
+};
+
+int dotDelay = 200;
+
+int LED = 2;
+int BUTTON = 3;
+
+void setup() {
+  pinMode(LED, OUTPUT);
+  pinMode(BUTTON, INPUT);
+  Serial.begin(9600);
+}
+  
+void morseEncoder(){
+  char ch;
+  if (Serial.available()){
+    ch = Serial.read();
+    if (ch >= 'a' && ch <= 'z'){
+      flashSequence(letters[ch - 'a']);
+    }
+    else if (ch >= 'A' && ch <= 'Z') {
+      flashSequence(letters[ch - 'A']); 
+    }
+    else if (ch == ' ') {
+      delay(dotDelay * 4);	
+    }
+  }
+  return;
+}
+
+void morseDecoder(){
+  int signal_len,t1,t2;
+  char* code = "";
+  NextDotDash:
+  while (digitalRead(BUTTON) == HIGH) {}
+  t1 = millis();                            
+  while (digitalRead(BUTTON) == LOW) {}
+  t2 = millis();                            
+  signal_len = t2 - t1;     
+  if (signal_len > 50)
+  {
+    code += parseSignal(signal_len); 
+
+  }
+  if ((millis() - t2) < 500)
+  {     
+    if (digitalRead(BUTTON) == LOW)
+    {
+      goto NextDotDash;
+    }
+  }
+  decode(code);
+}
+
+void loop() {
+    //morseDecoder();
+  	morseEncoder();
+}
+
+void flashSequence(char* sequence) {
+	int i = 0;
+	while (sequence[i] != NULL) {
+        flashDotOrDash(sequence[i]);
+		i++; 
+    }
+	delay(dotDelay * 3);
+}
+
+
+void flashDotOrDash(char dotOrDash) {
+	digitalWrite(LED, HIGH); 
+  	if (dotOrDash == '.'){
+        delay(dotDelay);
+  	}
+	else
+  	{
+		delay(dotDelay * 3); 
+    }
+	digitalWrite(LED, LOW); delay(dotDelay);
+}
+
+char parseSignal(int signal_len)
+{
+  if (signal_len < 600 && signal_len > 50)
+  {
+    return '.';                        
+  }
+  else if (signal_len > 600)
+  {
+    return '-';                        
+  }
+}
+
+void decode(char* code)
+{
+  int i = 0;
+  if (code == ".-.-.-")
+  {
+    Serial.println(".");        
+  }
+  else
+  {
+    while (letters[i] != "E") 
+    {
+      if (letters[i] == code)
+      {
+        Serial.println(char('A' + i));
+        break;
+      }
+      i++;
+    }
+  }
+}
